@@ -4,10 +4,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 
-# Завантаження даних
-def load_data(file_path):
-    # Перевірка наявності файлу
-    if not os.path.exists(file_path):
+def load_data(path):
+    if not os.path.exists(path):
         st.error(
             "File not found! Please check the following:\n"
             "1. Ensure you run script in the root directory of the repository\n"
@@ -15,26 +13,20 @@ def load_data(file_path):
         )
         return None
     else:
-        data = pd.read_csv(file_path)
+        data = pd.read_csv(path)
         return data
 
-def reset_filters():
-    '''
-    session_state - це спосіб обміну змінними між повторами для кожного сеансу користувача. 
-    На додаток до можливості зберігати та зберігати стан, Streamlit також надає можливість 
-    маніпулювати станом за допомогою зворотних викликів. Стан сеансу також зберігається 
-    між програмами всередині багатосторінкової програми
-    '''
+def reset_filters():і
     # значення за замовчуванням
-    st.session_state["selected_option"] = 'VCI'
-    st.session_state["selected_region"] = regions[0]
+    st.session_state["option"] = 'VCI'
+    st.session_state["region"] = regions[0]
     st.session_state["year_range"] = (int(data["Year"].min()), int(data["Year"].max()))
     st.session_state["week_range"] = (int(data["Week"].min()), int(data["Week"].max()))
     st.session_state["sort_asc"] = False
     st.session_state["sort_desc"] = False
 
-file_path = os.path.join('lab2', 'VHI_data', 'NOAA_Ukraine_Updated.csv')
-data = load_data(file_path)
+path = os.path.join('lab2', 'VHI_data', 'NOAA_Ukraine_Updated.csv')
+data = load_data(path)
 
 # float to int для уникнення помилок
 data["Week"] = data["Week"].astype(int) 
@@ -68,39 +60,34 @@ region_names = {
     24: "Черкаська",
     25: "Чернівецька",
     26: "Чернігівська",
-    27: "Республіка Крим"
+    27: "Крим"
 }
 
 if data is not None:
-    st.title('Data Analysis: VCI, TCI, VHI')
-
-    # Колонки
+    st.title('Lab2')
     col1, col2 = st.columns([2,3])
-
-    # Колонка 1
     with col1:
-        regions = list(region_names.values()) # список з регіонами
-        # Ініціалізація session_state (призначення значень за замовчуванням, при ініціалізації session_state)
-        st.session_state.setdefault("selected_option", 'VCI')
-        st.session_state.setdefault("selected_region", regions[0])
+        regions = list(region_names.values())
+        st.session_state.setdefault("option", 'VCI')
+        st.session_state.setdefault("region", regions[0])
         st.session_state.setdefault("year_range", (int(data["Year"].min()), int(data["Year"].max())))
         st.session_state.setdefault("week_range", (int(data["Week"].min()), int(data["Week"].max())))
-        st.session_state.setdefault("sort_asc", False)
+        st.session_state.setdefault("sort_asc", True)
         st.session_state.setdefault("sort_desc", False)
 
         # 1. Dropdown для вибору часових рядів
         options = ['VCI', 'TCI', 'VHI']
         # key - ідентифікатор віджета (selectbox) у session_state
         # Він використовується для збереження стану віджета. Автоматично зберігається в session_state
-        selected_option = st.selectbox('Select Time Series:', options, key="selected_option")
+        option = st.selectbox('Select:', options, key="option")
 
         # 2. Dropdown для вибору області
-        if st.session_state["selected_region"] not in regions:
-            st.session_state["selected_region"] = regions[0]
+        if st.session_state["region"] not in regions:
+            st.session_state["region"] = regions[0]
 
-        index = regions.index(st.session_state["selected_region"])
+        index = regions.index(st.session_state["region"])
 
-        selected_region = st.selectbox('Select Region:', regions, index=index, key="selected_region")
+        region = st.selectbox('Select Region:', regions, index=index, key="region")
 
         # 3. Slider для вибору інтервалу тижнів
         min_week = data['Week'].min()
@@ -116,7 +103,7 @@ if data is not None:
 
         # Фільтрація даних за обраними параметрами
         # знаходить для регіону відповідний номер, наприклад 1 для 'Вінницька'
-        region_index = next((key for key, value in region_names.items() if value == st.session_state["selected_region"]), None)
+        region_index = next((key for key, value in region_names.items() if value == st.session_state["region"]), None)
         filtered_data = data[
             (data['Year'] >= year_range[0]) &
             (data['Year'] <= year_range[1]) &
@@ -133,9 +120,9 @@ if data is not None:
             st.warning("Both sort options selected. Only ascending will be applied.")
             sort_desc = False
         elif sort_asc:
-            filtered_data = filtered_data.sort_values(by=st.session_state["selected_option"], ascending=True)
+            filtered_data = filtered_data.sort_values(by=st.session_state["option"], ascending=True)
         elif sort_desc:
-            filtered_data = filtered_data.sort_values(by=st.session_state["selected_option"], ascending=False)
+            filtered_data = filtered_data.sort_values(by=st.session_state["option"], ascending=False)
 
         # 5. Button для скидання фільтрів
         st.button('Reset Filters', on_click=reset_filters)
@@ -152,8 +139,8 @@ if data is not None:
         # Графік з відфільтрованими даними
         with tab2:
             plt.figure(figsize=(6, 3)) 
-            sns.lineplot(x=filtered_data["Year"], y=filtered_data[selected_option])
-            plt.title(f"Time Series {selected_option} for {selected_region} region")
+            sns.lineplot(x=filtered_data["Year"], y=filtered_data[option])
+            plt.title(f"Time Series {option} for {region} region")
             years = sorted(filtered_data["Year"].unique())
             step = 2
             selected_years = years[::step] 
@@ -166,8 +153,8 @@ if data is not None:
                 (data['Year'] >= year_range[0]) & (data['Year'] <= year_range[1]) &
                 (data['Week'] >= week_range[0]) & (data['Week'] <= week_range[1])
             ]
-            # групуємо дані по регіонах, обчислюємо середнє {selected_option}
-            comparison_data_grouped = comparison_data.groupby('Region')[selected_option].mean()
+            # групуємо дані по регіонах, обчислюємо середнє {option}
+            comparison_data_grouped = comparison_data.groupby('Region')[option].mean()
             comparison_data_grouped = comparison_data_grouped.sort_values(ascending=True)
 
             # Заміна індексів на відповідні назви регіонів
@@ -177,8 +164,8 @@ if data is not None:
             sns.barplot(x=comparison_data_grouped.index, y=comparison_data_grouped.values, palette="coolwarm")
             plt.xticks(rotation=90)
             plt.xlabel('Region')
-            plt.ylabel(f'Average {selected_option}')
-            plt.title(f"Average {selected_option} by Region") 
+            plt.ylabel(f'Average {option}')
+            plt.title(f"Average {option} by Region") 
             
             # Виведення графіку на сторінці
             st.pyplot(plt)
