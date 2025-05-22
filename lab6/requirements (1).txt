@@ -1,0 +1,12 @@
+pandas
+numpy 
+ipython 
+matplotlib 
+urllib3
+streamlit
+seaborn
+ucimlrepo
+scipy
+scikit-learn
+plotly
+bokeh
